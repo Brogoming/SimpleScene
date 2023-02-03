@@ -1,8 +1,10 @@
 var scene, camera, renderer, box1, box2;
+let on = false
 
 init();
 
 function init(){
+    window.addEventListener("keydown", lightup)
 
     const assetPath = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/2666677/';
 
@@ -17,7 +19,7 @@ function init(){
 
     //camera
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-    camera.position.set(10, 10, 10);
+    camera.position.set(10, 20, 10);
 
     //ambient lighting
     const ambient = new THREE.HemisphereLight(0xffffbb, 0x080820);
@@ -171,6 +173,29 @@ function init(){
     update();
 }
 
+function lightup(){
+    const saberGeometry = new THREE.CylinderGeometry( 2, 2, 1, 32 ); //radius top, radius buttom, height, segments
+    const blueColor = new THREE.MeshBasicMaterial({ 
+        color: 0x0000ff
+    })
+    if(!on){
+        saber = new THREE.Mesh(saberGeometry, blueColor)
+        for(let i = 0; i < 70; i++){
+            const eachSaber = saber.clone()
+            eachSaber.position.x = 0;
+            eachSaber.position.z = 0;
+            eachSaber.position.y = 15 + i
+            scene.add(eachSaber)
+        }
+        on = true
+    } else {
+        for(let i = 0; i < 70; i++){
+            scene.remove(eachSaber)
+        }
+        on = false
+    }
+}
+
 function update(){
     requestAnimationFrame( update );
     renderer.render( scene, camera );
@@ -181,3 +206,7 @@ function resize(){
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
+
+const delay = (delayInms) => {
+    return new Promise(resolve => setTimeout(resolve, delayInms));
+  }
