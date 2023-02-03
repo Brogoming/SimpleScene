@@ -1,18 +1,18 @@
 var scene, camera, renderer, box1, box2;
 let on = false
+let lightSaberHilt = new THREE.Group();
+let lightSaberBlade = new THREE.Group();
 
 init();
 
 function init(){
     window.addEventListener("keydown", lightup)
 
-    const assetPath = 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/2666677/';
-
     scene = new THREE.Scene();
 
     //sky box
-    const cubeMap = new THREE.CubeTextureLoader().setPath(`${assetPath}skybox2_`).load([
-        'px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg'
+    const cubeMap = new THREE.CubeTextureLoader().setPath('Assets/').load([
+        'snowalps_ft.png', 'snowalps_bk.png', 'snowalps_up.png', 'snowalps_dn.png', 'snowalps_rt.png', 'snowalps_lf.png'
     ]);
     scene.background = new THREE.Color('grey');
     scene.background = cubeMap;
@@ -29,6 +29,11 @@ function init(){
     const light = new THREE.DirectionalLight(0xFFFFFF, 1);
     light.position.set( 1, 10, 6);
     scene.add(light);
+
+    //saber light
+    const saberLight = new THREE.DirectionalLight(0x0000FF, 1);
+    saberLight.position.set( 0, 0, 110);
+    lightSaberBlade.add(saberLight);
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -71,6 +76,8 @@ function init(){
     const sideBoxGeometry1 = new THREE.BoxGeometry(0.875,6,1.25)
     const sideBoxGeometry2 = new THREE.BoxGeometry(0.125,6,1.25)
     const finGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings) //for the buttom of the lightsaber
+    const outSaberGeometry = new THREE.CylinderGeometry( 1.625, 1.75, 70, 32 ); //radius top, radius buttom, height, segments
+    const inSaberGeometry = new THREE.CylinderGeometry( 1.125, 1.25, 69, 32 ); //radius top, radius buttom, height, segments
 
     const silverMaterial = new THREE.MeshStandardMaterial({ 
         color: 0xffffff,
@@ -91,10 +98,19 @@ function init(){
         envMap: cubeMap, // important -- especially for metals!
         envMapIntensity: 1
     });
-
     const darkColor = new THREE.MeshStandardMaterial({ 
         color: 0x000000
     });
+    const blueColor = new THREE.MeshLambertMaterial({ 
+        color: 0x58c1fe,
+        emissive: 0x0033ff,
+        transparent: true,
+        opacity: 0.55
+    })
+    const whiteColor = new THREE.MeshLambertMaterial({ 
+        color: 0xffffff,
+        emissive: 0x0033ff
+    })
 
     //the lightsaber
     baseHilt = new THREE.Mesh(baseHiltGeometry, silverMaterial);
@@ -136,6 +152,27 @@ function init(){
     topInside.position.x = 0;
     topInside.position.y = 14.5;
 
+    lightSaberHilt.add( baseHilt );
+    lightSaberHilt.add( centerHilt );
+    lightSaberHilt.add( sideBox1 );
+    lightSaberHilt.add( sideBox2 );
+    lightSaberHilt.add( frontButton1 );
+    lightSaberHilt.add( frontButton2 );
+    lightSaberHilt.add( backButton1 );
+    lightSaberHilt.add( backButton2 );
+    lightSaberHilt.add( bottomInside );
+    lightSaberHilt.add( topInside );
+
+    inSaber = new THREE.Mesh(inSaberGeometry, whiteColor)
+    inSaber.position.x = 0;
+    inSaber.position.z = 0;
+    inSaber.position.y = 40
+    outSaber = new THREE.Mesh(outSaberGeometry, blueColor)
+    outSaber.position.x = 0;
+    outSaber.position.z = 0;
+    outSaber.position.y = 40
+    lightSaberBlade.add(outSaber, inSaber);
+
     //all of the fins on the bottom
     fin = new THREE.Mesh(finGeometry, darkColor)
     let rotationY = Math.PI/6
@@ -146,7 +183,7 @@ function init(){
         eachFin.position.y = -11.5;
         eachFin.rotation.y = rotationY
         rotationY += Math.PI/3
-        scene.add(eachFin)
+        lightSaberHilt.add(eachFin);
     }
 
     let arc = Math.PI
@@ -163,10 +200,10 @@ function init(){
         topRing.rotation.z = Math.PI*2 - arcOffset * i / 4
         offset += 0.05
         arcOffset -= 0.00025
-        scene.add(topRing)
+        lightSaberHilt.add(topRing);
     }
 
-    scene.add(baseHilt, centerHilt, sideBox1, sideBox2, frontButton1, frontButton2, backButton1, backButton2, bottomInside, topInside);
+    scene.add(lightSaberHilt);
 
     window.addEventListener( 'resize', resize, false);
 
@@ -174,24 +211,11 @@ function init(){
 }
 
 function lightup(){
-    const saberGeometry = new THREE.CylinderGeometry( 2, 2, 1, 32 ); //radius top, radius buttom, height, segments
-    const blueColor = new THREE.MeshBasicMaterial({ 
-        color: 0x0000ff
-    })
     if(!on){
-        saber = new THREE.Mesh(saberGeometry, blueColor)
-        for(let i = 0; i < 70; i++){
-            const eachSaber = saber.clone()
-            eachSaber.position.x = 0;
-            eachSaber.position.z = 0;
-            eachSaber.position.y = 15 + i
-            scene.add(eachSaber)
-        }
+        scene.add(lightSaberBlade)
         on = true
     } else {
-        for(let i = 0; i < 70; i++){
-            scene.remove(eachSaber)
-        }
+        scene.remove(lightSaberBlade)
         on = false
     }
 }
@@ -199,6 +223,11 @@ function lightup(){
 function update(){
     requestAnimationFrame( update );
     renderer.render( scene, camera );
+    lightSaberHilt.rotation.y += 0.01;
+    if (lightSaberHilt!==undefined){
+        lightSaberHilt.rotation.y += 0.01;
+        lightSaberBlade.rotation.y += 0.01;
+    }
 }
 
 function resize(){
